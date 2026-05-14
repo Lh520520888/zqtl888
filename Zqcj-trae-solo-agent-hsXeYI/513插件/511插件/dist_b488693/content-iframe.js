@@ -5,7 +5,7 @@
   'use strict';
 
   const CONFIG = {
-    CHECK_INTERVAL: 1500, // 优化：从500ms改为1500ms，大幅降低扫描频率
+    CHECK_INTERVAL: 500,
   };
 
   const STORAGE_KEY = 'mp_iframe_events';
@@ -1069,20 +1069,10 @@
   // 记录上一次检测到的事件，避免重复日志
   let lastDetectedEvent = '';
 
-  // 优化：缓存teams信息，减少DOM查询
-  let cachedTeams = { home: '主队', away: '客队' };
-  let lastTeamsUpdate = 0;
-  const TEAMS_CACHE_DURATION = 5000; // 5秒缓存
-
   function checkLiveEvents() {
-    const now = Date.now();
-    
-    // 优化：缓存球队信息，减少DOM查询
-    if (now - lastTeamsUpdate > TEAMS_CACHE_DURATION) {
-      cachedTeams = getTeamNames();
-      lastTeamsUpdate = now;
-      sendTeamNamesToBg(cachedTeams);
-    }
+    const teams = getTeamNames();
+
+    sendTeamNamesToBg(teams);
 
     // 查找 iframe 内所有 .text-box .label 或直接 .label
     const allLabels = document.querySelectorAll('.label');
@@ -1091,18 +1081,8 @@
       return;
     }
 
-    // 优化：优先处理最新的事件，减少循环次数
-    const labelsArray = Array.from(allLabels);
-    const labelsToProcess = labelsArray.slice(0, 3); // 只处理前3个最新元素
-    
-    labelsToProcess.forEach((labelElement) => {
+    allLabels.forEach((labelElement, index) => {
       const label = labelElement.textContent.trim();
-      
-      // 快速过滤，只处理关键事件
-      if (!label || !['角球', '危险任意球', '进攻', '危险进攻', '控球', '进球', '点球'].some(key => label.includes(key))) {
-        return;
-      }
-      
       const textBox = labelElement.closest('.text-box') || labelElement.parentElement;
       const teamTextElement = textBox?.querySelector('.text.mb') || textBox?.querySelector('.text');
       const teamName = teamTextElement ? teamTextElement.textContent.trim() : '未知';
@@ -1120,32 +1100,32 @@
       // 角球检测
       if (label === '角球' || label.includes('角球')) {
         sendDebugLog(`[${getMatchTime()}] >>> 匹配到角球! "${teamName}"`);
-        processLabelEvent(labelElement, 'corner', cachedTeams, teamName);
+        processLabelEvent(labelElement, 'corner', teams, teamName);
       }
 
       // 危险任意球检测
       if (label === '危险任意球' || label.includes('危险任意球')) {
         sendDebugLog(`[${getMatchTime()}] >>> 匹配到危险任意球! "${teamName}"`);
-        processLabelEvent(labelElement, 'dangerous_freekick', cachedTeams, teamName);
+        processLabelEvent(labelElement, 'dangerous_freekick', teams, teamName);
       }
 
       // 进攻检测
       if (label === '进攻' || label === '危险进攻' || label.includes('进攻') || label.includes('危险进攻')) {
         const attackType = (label === '危险进攻' || label.includes('危险进攻')) ? 'dangerous_attack' : 'attack';
         sendDebugLog(`[${getMatchTime()}] >>> 匹配到${label}! "${teamName}"`);
-        processAttackEvent(labelElement, attackType, cachedTeams, teamName);
+        processAttackEvent(labelElement, attackType, teams, teamName);
       }
 
       // 控球检测
       if (label === '控球' || label.includes('控球')) {
         sendDebugLog(`[${getMatchTime()}] >>> 匹配到控球! "${teamName}"`);
-        processPossessionEvent(teamName, cachedTeams);
+        processPossessionEvent(teamName, teams);
       }
 
       // 进球检测
       if (label === '进球' || label.includes('进球') || label === '点球进球' || label.includes('点球')) {
         sendDebugLog(`[${getMatchTime()}] >>> 匹配到进球! "${teamName}"`);
-        processGoalEvent(labelElement, cachedTeams, teamName);
+        processGoalEvent(labelElement, teams, teamName);
       }
     });
   }
@@ -1257,37 +1237,24 @@
   }
 
   let observerThrottleTimer = null;
-  let lastObserverCheck = 0;
 
   function startObserver() {
-    const observer = new MutationObserver((mutations) => {
-      // 优化：只监听有实际变化的mutation
-      const hasRelevantChange = mutations.some(m => 
-        m.addedNodes.length > 0 || m.removedNodes.length > 0
-      );
-      
-      if (!hasRelevantChange) return;
-      
-      const now = Date.now();
-      if (now - lastObserverCheck < 800) return; // 优化：增加防抖
-      lastObserverCheck = now;
-      
+    const observer = new MutationObserver(() => {
       if (observerThrottleTimer) return;
       observerThrottleTimer = setTimeout(() => {
         observerThrottleTimer = null;
         checkLiveEvents();
-      }, 300);
+      }, 200);
     });
 
-    // 优化：减少监听范围，只监听必要的变化
     observer.observe(document.body, {
       childList: true,
       subtree: true,
-      attributes: false, // 优化：不监听属性变化
-      characterData: false // 优化：不监听字符变化
+      attributes: true,
+      characterData: true
     });
 
-    sendDebugLog('MutationObserver 已启动(性能优化版)');
+    sendDebugLog('MutationObserver 已启动(200ms节流)');
   }
 
   function init() {
