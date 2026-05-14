@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MatchPulse Logo Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1a1a2e;
+      color: white;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    canvas {
+      background: transparent;
+      border: 1px solid #333;
+      margin: 20px;
+      image-rendering: pixelated;
+    }
+    .controls {
+      margin: 20px 0;
+    }
+    button {
+      background: #00d4ff;
+      color: #0a0e27;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>MatchPulse Logo Generator</h1>
+    <div class="canvas-container">
+      <h3>16x16</h3>
+      <canvas id="logo16" width="16" height="16"></canvas>
+      <button onclick="downloadLogo(16)">Download 16x16</button>
+    </div>
+    <div class="canvas-container">
+      <h3>48x48</h3>
+      <canvas id="logo48" width="48" height="48"></canvas>
+      <button onclick="downloadLogo(48)">Download 48x48</button>
+    </div>
+    <div class="canvas-container">
+      <h3>128x128</h3>
+      <canvas id="logo128" width="128" height="128"></canvas>
+      <button onclick="downloadLogo(128)">Download 128x128</button>
+    </div>
+    <p>Logo 设计说明：</p>
+    <ul style="text-align: left;">
+      <li>圆形深蓝背景 (#0a0e27)</li>
+      <li>中央为带五边形花纹的足球</li>
+      <li>右上角有青色脉冲发光点</li>
+      <li>左下角有紫色小信号点</li>
+      <li>上方有弧形脉冲波纹</li>
+      <li>外圈青色渐变边框</li>
+    </ul>
+  </div>
+
+  <script>
+    function drawLogo(ctx, size) {
+      const center = size / 2;
+      const radius = size / 2 - 2;
+
+      // 清除画布
+      ctx.clearRect(0, 0, size, size);
+
+      // 1. 绘制外圈青色渐变边框
+      const borderGradient = ctx.createRadialGradient(center, center, radius * 0.8, center, center, radius);
+      borderGradient.addColorStop(0, '#00d4ff');
+      borderGradient.addColorStop(1, '#0080ff');
+      
+      ctx.beginPath();
+      ctx.arc(center, center, radius, 0, Math.PI * 2);
+      ctx.fillStyle = borderGradient;
+      ctx.fill();
+
+      // 2. 绘制深蓝背景
+      ctx.beginPath();
+      ctx.arc(center, center, radius - 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#0a0e27';
+      ctx.fill();
+
+      // 3. 绘制弧形脉冲波纹
+      const waveRadius = radius * 0.7;
+      ctx.beginPath();
+      ctx.arc(center, center, waveRadius, -Math.PI * 0.8, -Math.PI * 0.2);
+      ctx.strokeStyle = 'rgba(0, 212, 255, 0.5)';
+      ctx.lineWidth = size / 32;
+      ctx.stroke();
+
+      // 4. 绘制足球
+      const soccerSize = radius * 0.5;
+      const soccerRadius = soccerSize * 0.8;
+
+      // 足球主体
+      ctx.beginPath();
+      ctx.arc(center, center, soccerRadius, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = size / 64;
+      ctx.stroke();
+
+      // 足球五边形花纹
+      drawSoccerPattern(ctx, center, center, soccerRadius, size);
+
+      // 5. 右上角青色脉冲发光点
+      const pulseX = center + radius * 0.5;
+      const pulseY = center - radius * 0.5;
+      
+      // 发光效果
+      const glowGradient = ctx.createRadialGradient(pulseX, pulseY, 0, pulseX, pulseY, size / 16);
+      glowGradient.addColorStop(0, 'rgba(0, 212, 255, 1)');
+      glowGradient.addColorStop(0.5, 'rgba(0, 212, 255, 0.6)');
+      glowGradient.addColorStop(1, 'rgba(0, 212, 255, 0)');
+      
+      ctx.beginPath();
+      ctx.arc(pulseX, pulseY, size / 16, 0, Math.PI * 2);
+      ctx.fillStyle = glowGradient;
+      ctx.fill();
+
+      // 脉冲点核心
+      ctx.beginPath();
+      ctx.arc(pulseX, pulseY, size / 32, 0, Math.PI * 2);
+      ctx.fillStyle = '#00d4ff';
+      ctx.fill();
+
+      // 6. 左下角紫色小信号点
+      const signalX = center - radius * 0.4;
+      const signalY = center + radius * 0.4;
+      
+      ctx.beginPath();
+      ctx.arc(signalX, signalY, size / 48, 0, Math.PI * 2);
+      ctx.fillStyle = '#7c4dff';
+      ctx.fill();
+    }
+
+    function drawSoccerPattern(ctx, cx, cy, radius, size) {
+      const innerRadius = radius * 0.4;
+      const hexRadius = radius * 0.3;
+
+      // 绘制中心五边形
+      const pentagonPoints = [];
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+        const x = cx + hexRadius * Math.cos(angle);
+        const y = cy + hexRadius * Math.sin(angle);
+        pentagonPoints.push({ x, y });
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(pentagonPoints[0].x, pentagonPoints[0].y);
+      for (let i = 1; i < 5; i++) {
+        ctx.lineTo(pentagonPoints[i].x, pentagonPoints[i].y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = '#000000';
+      ctx.fill();
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = size / 64;
+      ctx.stroke();
+
+      // 绘制其他线条
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+        const startX = cx + hexRadius * Math.cos(angle);
+        const startY = cy + hexRadius * Math.sin(angle);
+        const endX = cx + radius * 0.9 * Math.cos(angle);
+        const endY = cy + radius * 0.9 * Math.sin(angle);
+        
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = size / 64;
+        ctx.stroke();
+      }
+    }
+
+    function downloadLogo(size) {
+      const canvas = document.getElementById('logo' + size);
+      const link = document.createElement('a');
+      link.download = `icon${size}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    // 初始化画布
+    const canvas16 = document.getElementById('logo16');
+    const ctx16 = canvas16.getContext('2d');
+    drawLogo(ctx16, 16);
+
+    const canvas48 = document.getElementById('logo48');
+    const ctx48 = canvas48.getContext('2d');
+    drawLogo(ctx48, 48);
+
+    const canvas128 = document.getElementById('logo128');
+    const ctx128 = canvas128.getContext('2d');
+    drawLogo(ctx128, 128);
+  </script>
+</body>
+</html>

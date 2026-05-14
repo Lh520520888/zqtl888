@@ -1,0 +1,41 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "test",
+      "password": "$2a$10$YY8K0mcXGosCl.tanro9veGxBLqhMaUIiSTWjcf5TQ4Eu56O/KgkC",
+      "deviceId": null,
+      "deviceName": null,
+      "status": 1,
+      "expiresAt": null,
+      "createdAt": "2026-05-06T17:41:26.605Z",
+      "updatedAt": "2026-05-06T17:41:26.605Z",
+      "lastLoginAt": null,
+      "loginCount": 0
+    },
+    {
+      "id": 2,
+      "username": "55556",
+      "password": "$2a$10$RYR8evYMCHQOjXpXeyLrnu/XMglIasMorirQDoacDvmkCJxyhHr7.",
+      "deviceId": null,
+      "deviceName": null,
+      "status": 1,
+      "expiresAt": "2026-05-09",
+      "createdAt": "2026-05-06T17:47:52.767Z",
+      "updatedAt": "2026-05-06T17:47:52.767Z",
+      "lastLoginAt": null,
+      "loginCount": 0
+    }
+  ],
+  "loginLogs": [],
+  "adminUsers": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "$2a$10$R1xqjy8aZYGzoLf70FGmjuug/o2s9qe6ItHyZ2GXQcrvrUpCTo.4y",
+      "role": "admin",
+      "createdAt": "2026-05-06T17:41:26.482Z",
+      "updatedAt": "2026-05-06T17:41:26.483Z"
+    }
+  ]
+}

@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MatchPulse</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ===== 全局暗黑主题 ===== */
+    body {
+      width: 320px;
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #080c1a;
+      font-size: 12px;
+      color: #b8c5d6;
+      overflow: hidden;
+    }
+
+    /* ===== 全局滚动条 ===== */
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e2a4a; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2a3a5a; }
+
+    /* ===== Header - 数据引擎标识 ===== */
+    .header {
+      background: linear-gradient(180deg, #0d1137 0%, #0a0e27 100%);
+      padding: 18px 16px 14px;
+      text-align: center;
+      border-bottom: 1px solid #151d3d;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(ellipse, rgba(0,212,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+    .header .pulse-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #00d4ff;
+      box-shadow: 0 0 8px #00d4ff, 0 0 20px rgba(0,212,255,0.4);
+      animation: headerPulse 2s ease-in-out infinite;
+    }
+    @keyframes headerPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      background: linear-gradient(135deg, #00d4ff 0%, #7c4dff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header .subtitle {
+      font-size: 9px;
+      color: #3d4f7a;
+      margin-top: 3px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 1;
+    }
+    .header .version {
+      font-size: 9px;
+      color: #2a3a5a;
+      margin-top: 2px;
+      position: relative;
+      z-index: 1;
+    }
+    .zoom-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.15);
+      color: #5a8aaa;
+      padding: 3px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      font-family: 'SF Mono', 'Consolas', monospace;
+      transition: all 0.2s ease;
+      z-index: 1;
+    }
+    .zoom-btn:hover {
+      background: rgba(0,212,255,0.15);
+      border-color: rgba(0,212,255,0.3);
+      color: #00d4ff;
+    }
+
+    /* ===== Tabs - 导航标签 ===== */
+    .tabs {
+      display: flex;
+      background: #0c1030;
+      border-bottom: 1px solid #151d3d;
+      padding: 0 4px;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 4px;
+      text-align: center;
+      cursor: pointer;
+      color: #4a5a7a;
+      font-size: 11px;
+      font-weight: 500;
+      position: relative;
+      transition: all 0.25s ease;
+      user-select: none;
+      letter-spacing: 0.5px;
+    }
+    .tab::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #00d4ff, #7c4dff);
+      border-radius: 1px 1px 0 0;
+      transition: width 0.3s ease;
+    }
+    .tab:hover { color: #7a8aaa; background: rgba(0,212,255,0.03); }
+    .tab.active {
+      color: #00d4ff;
+      font-weight: 600;
+    }
+    .tab.active::after { width: 50%; }
+
+    .tab-content { display: none; animation: fadeSlideIn 0.3s ease; }
+    .tab-content.active { display: block; }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== Status Bar - 信号状态栏 ===== */
+    .status-bar {
+      background: #0c1030;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #111840;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    /* 信号强度条 */
+    .signal-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+    }
+    .signal-bar {
+      width: 3px;
+      border-radius: 1px;
+      background: #1e2a4a;
+      transition: all 0.4s ease;
+    }
+    .signal-bar:nth-child(1) { height: 4px; }
+    .signal-bar:nth-child(2) { height: 7px; }
+    .signal-bar:nth-child(3) { height: 10px; }
+    .signal-bar:nth-child(4) { height: 14px; }
+
+    .signal-bars.active .signal-bar {
+      background: #00d4ff;
+      box-shadow: 0 0 4px rgba(0,212,255,0.5);
+    }
+    .signal-bars.active .signal-bar:nth-child(1) { animation: signalPulse 1.2s ease-in-out infinite; }
+    .signal-bars.active .signal-bar:nth-child(2) { animation: signalPulse 1.2s ease-in-out 0.2s infinite; }
+    .signal-bars.active .signal-bar:nth-child(3) { animation: signalPulse 1.2s ease-in-out 0.4s infinite; }
+    .signal-bars.active .signal-bar:nth-child(4) { animation: signalPulse 1.2s ease-in-out 0.6s infinite; }
+
+    @keyframes signalPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .status-text {
+      font-size: 11px;
+      color: #4a5a7a;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+    .status-text.online { color: #00d4ff; }
+
+    /* ===== Match Teams - 对阵双方 ===== */
+    .match-teams {
+      background: linear-gradient(180deg, #0d1137, #0a0e27);
+      padding: 10px 12px;
+      border-bottom: 1px solid #151d3d;
+    }
+    .match-teams-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .team-tag {
+      padding: 4px 14px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .home-tag {
+      background: rgba(124,77,255,0.12);
+      color: #b87ad0;
+      border: 1px solid rgba(124,77,255,0.25);
+    }
+    .away-tag {
+      background: rgba(0,212,255,0.1);
+      color: #5a9ad0;
+      border: 1px solid rgba(0,212,255,0.2);
+    }
+    .vs-text {
+      font-size: 10px;
+      color: #3a4a6a;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    /* ===== Buttons - 操作按钮 ===== */
+    .btn {
+      background: linear-gradient(135deg, #1a2050, #1e2860);
+      color: #8a9ac0;
+      border: 1px solid #1e2a5a;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      letter-spacing: 0.3px;
+    }
+    .btn:hover {
+      background: linear-gradient(135deg, #1e2860, #253070);
+      border-color: #2a3a6a;
+      color: #b8c8e0;
+      transform: translateY(-1px);
+    }
+    .btn:active { transform: translateY(0); }
+
+    .btn.home {
+      background: linear-gradient(135deg, #1a1030, #2a1040);
+      border-color: #3a1550;
+      color: #b87ad0;
+    }
+    .btn.home:hover { border-color: #5a2a7a; color: #d090e0; }
+
+    .btn.away {
+      background: linear-gradient(135deg, #0a1a30, #0a2040);
+      border-color: #152a50;
+      color: #5a9ad0;
+    }
+    .btn.away:hover { border-color: #2a4a7a; color: #7abae0; }
+
+    .btn.danger {
+      background: linear-gradient(135deg, #1a0a10, #2a0a15);
+      border-color: #3a1520;
+      color: #c06060;
+    }
+    .btn.danger:hover { border-color: #5a2a30; color: #d08080; }
+
+    .btn-sm { padding: 3px 8px; font-size: 9px; }
+
+    /* ===== Log Container - 事件信号流 ===== */
+    .log-container {
+      padding: 6px 8px;
+      max-height: 230px;
+      overflow-y: auto;
+    }
+
+    .log-item {
+      background: #0c1030;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 5px;
+      border: 1px solid #111840;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .log-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, #00d4ff, #7c4dff);
+      border-radius: 0 2px 2px 0;
+      opacity: 0.6;
+    }
+    .log-item:hover {
+      border-color: #1a2860;
+      background: #0e1240;
+    }
+    .log-item .time {
+      font-size: 9px;
+      color: #3a4a6a;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'SF Mono', 'Consolas', 'Courier New', monospace;
+    }
+    .log-item .time .source-tag {
+      font-size: 8px;
+      padding: 1px 5px;
+      border-radius: 2px;
+      background: rgba(0,212,255,0.08);
+      color: #4a8aaa;
+      letter-spacing: 0.5px;
+    }
+    .log-item .event {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .log-item .event-type {
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .log-item .event-type.corner {
+      background: rgba(0,212,255,0.1);
+      color: #00d4ff;
+      border: 1px solid rgba(0,212,255,0.2);
+    }
+    .log-item .event-type.freekick {
+      background: rgba(255,171,0,0.1);
+      color: #ffab00;
+      border: 1px solid rgba(255,171,0,0.2);
+    }
+    .log-item .event-type.attack {
+      background: rgba(255,82,82,0.1);
+      color: #ff5252;
+      border: 1px solid rgba(255,82,82,0.2);
+    }
+    .log-item .event-type.supplement {
+      background: rgba(255,171,0,0.1);
+      color: #ffab00;
+      border: 1px solid rgba(255,171,0,0.2);
+    }
+    .log-item .team-name {
+      font-size: 11px;
+      color: #8a9ab8;
+      font-weight: 500;
+    }
+    .log-item .minute {
+      font-size: 11px;
+      color: #4a5a7a;
+      margin-left: auto;
+      font-weight: 500;
+      font-family: 'SF Mono', 'Consolas', monospace;
+    }
+
+    /* ===== Empty State ===== */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #2a3a5a;
+    }
+    .empty-state .icon { font-size: 36px; margin-bottom: 10px; opacity: 0.4; }
+    .empty-state p { font-size: 11px; letter-spacing: 0.5px; }
+
+    /* ===== Settings - 信号参数配置 ===== */
+    .settings-container {
+      padding: 10px;
+      background: #0a0e27;
+    }
+    .setting-item {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #111840;
+    }
+    .setting-item:last-child { border-bottom: none; margin-bottom: 0; }
+    .setting-label {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #8a9ab8;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.5px;
+    }
+    .setting-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sound-status {
+      flex: 1;
+      font-size: 10px;
+      color: #4a5a7a;
+      background: #0c1030;
+      padding: 5px 10px;
+      border-radius: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border: 1px solid #111840;
+    }
+    .sound-status.custom {
+      color: #00e676;
+      background: rgba(0,230,118,0.06);
+      border-color: rgba(0,230,118,0.15);
+    }
+    .setting-tip {
+      font-size: 9px;
+      color: #3a4a6a;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+    .setting-divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, #1a2860, transparent);
+      margin: 12px 0;
+    }
+    .time-label {
+      width: 48px;
+      font-size: 10px;
+      color: #5a6a8a;
+      font-weight: 500;
+    }
+    .time-input {
+      width: 54px;
+      padding: 5px 6px;
+      border: 1px solid #1a2860;
+      border-radius: 4px;
+      font-size: 11px;
+      text-align: center;
+      transition: all 0.2s ease;
+      background: #0c1030;
+      color: #b8c5d6;
+      font-family: 'SF Mono', 'Consolas', monospace;
+    }
+    .time-input:focus {
+      outline: none;
+      border-color: #00d4ff;
+      box-shadow: 0 0 0 2px rgba(0,212,255,0.08);
+      background: #0e1240;
+    }
+    .time-unit {
+      font-size: 10px;
+      color: #4a5a7a;
+    }
+
+    .checkbox-label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; color: #7a8aaa; cursor: pointer;
+      user-select: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background 0.2s ease;
+    }
+    .checkbox-label:hover { background: rgba(0,212,255,0.04); }
+    .checkbox-label input[type="checkbox"] {
+      width: 14px; height: 14px; cursor: pointer;
+      accent-color: #ffab00;
+    }
+
+    /* ===== Footer ===== */
+    .footer {
+      padding: 10px;
+      text-align: center;
+      font-size: 9px;
+      color: #2a3a5a;
+      border-top: 1px solid #111840;
+      background: #0a0e27;
+      line-height: 1.6;
+      letter-spacing: 0.5px;
+    }
+
+    /* ===== Login Page ===== */
+    #loginPage .header {
+      padding: 24px 16px 18px;
+    }
+    #loginPage .header h1 { font-size: 22px; }
+    .login-card {
+      padding: 24px 20px 20px;
+      background: #0a0e27;
+    }
+    .login-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #1a2860;
+      border-radius: 6px;
+      font-size: 13px;
+      transition: all 0.2s ease;
+      background: #0c1030;
+      color: #b8c5d6;
+      outline: none;
+    }
+    .login-input:focus {
+      border-color: #00d4ff;
+      box-shadow: 0 0 0 3px rgba(0,212,255,0.06);
+      background: #0e1240;
+    }
+    .login-input::placeholder { color: #3a4a6a; }
+    .login-btn {
+      width: 100%;
+      padding: 11px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, #00d4ff, #7c4dff);
+      color: #fff;
+      transition: all 0.2s ease;
+      letter-spacing: 1px;
+      box-shadow: 0 2px 12px rgba(0,212,255,0.2);
+    }
+    .login-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(0,212,255,0.3);
+    }
+    .login-btn:active { transform: translateY(0); }
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .login-error {
+      color: #ff5252;
+      font-size: 11px;
+      margin-top: 10px;
+      display: none;
+      text-align: center;
+      background: rgba(255,82,82,0.06);
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,82,82,0.15);
+    }
+    .login-qq {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 10px;
+      color: #2a3a5a;
+    }
+
+    /* ===== Account Page ===== */
+    .account-info {
+      font-size: 11px;
+      color: #7a8aaa;
+      line-height: 2;
+    }
+    .account-info .label { color: #4a5a7a; }
+    .account-info .value { color: #b8c5d6; font-weight: 500; }
+    .account-info .value.warning { color: #ffab00; font-weight: 600; }
+    .account-info .value.danger { color: #ff5252; font-weight: 600; }
+    .account-info .value.success { color: #00e676; }
+    .device-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      border: 1px solid #111840;
+      transition: all 0.2s ease;
+      background: #0c1030;
+    }
+    .device-item:hover { border-color: #1a2860; }
+    .device-item.current {
+      background: rgba(0,212,255,0.04);
+      border-color: rgba(0,212,255,0.15);
+    }
+    .device-item .device-name {
+      font-weight: 600;
+      color: #b8c5d6;
+    }
+    .device-item .device-name.current-device { color: #00d4ff; }
+    .device-item .device-meta {
+      color: #4a5a7a;
+      font-size: 10px;
+      margin-top: 2px;
+    }
+    .device-item .device-badge {
+      display: inline-block;
+      font-size: 9px;
+      color: #00d4ff;
+      font-weight: 500;
+    }
+    .btn-kick {
+      padding: 4px 10px;
+      font-size: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: rgba(255,171,0,0.1);
+      color: #ffab00;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      border: 1px solid rgba(255,171,0,0.15);
+    }
+    .btn-kick:hover {
+      background: rgba(255,171,0,0.18);
+      transform: translateY(-1px);
+    }
+    .btn-full {
+      width: 100%;
+      padding: 8px;
+      font-size: 11px;
+      border-radius: 4px;
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #1e2a5a;
+      color: #5a8aaa;
+      box-shadow: none;
+    }
+    .btn-outline:hover {
+      background: rgba(0,212,255,0.04);
+      border-color: #2a4a7a;
+      color: #00d4ff;
+      box-shadow: none;
+    }
+
+    /* ===== Sound Settings - 信号配置组 ===== */
+    .sound-group {
+      background: #0c1030;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #111840;
+    }
+    .sound-group:last-child { margin-bottom: 0; }
+    .sound-group-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #7a8aaa;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #111840;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.5px;
+    }
+    .sound-item {
+      background: #080c1a;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      border: 1px solid #0e1240;
+      transition: all 0.2s ease;
+    }
+    .sound-item:last-child { margin-bottom: 0; }
+    .sound-item:hover {
+      border-color: #1a2860;
+    }
+    .sound-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .sound-item-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #8a9ab8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sound-item-label .icon { font-size: 13px; }
+    .sound-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 500;
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .sound-tag.default {
+      background: rgba(255,255,255,0.03);
+      color: #4a5a7a;
+      border: 1px solid #151d3d;
+    }
+    .sound-tag.custom {
+      background: rgba(0,230,118,0.06);
+      color: #00e676;
+      border: 1px solid rgba(0,230,118,0.15);
+    }
+    .sound-item-actions {
+      display: flex;
+      gap: 5px;
+    }
+    .sound-item-actions .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 4px 8px;
+      border: none;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .sound-item-actions .btn-icon:hover {
+      transform: translateY(-1px);
+    }
+    .sound-item-actions .btn-icon:active {
+      transform: translateY(0);
+    }
+    .btn-icon.play {
+      background: rgba(0,230,118,0.08);
+      color: #00e676;
+      border: 1px solid rgba(0,230,118,0.15);
+    }
+    .btn-icon.play:hover { background: rgba(0,230,118,0.15); }
+    .btn-icon.upload-home {
+      background: rgba(180,120,220,0.08);
+      color: #b87ad0;
+      border: 1px solid rgba(180,120,220,0.15);
+    }
+    .btn-icon.upload-home:hover { background: rgba(180,120,220,0.15); }
+    .btn-icon.upload-away {
+      background: rgba(90,150,210,0.08);
+      color: #5a9ad0;
+      border: 1px solid rgba(90,150,210,0.15);
+    }
+    .btn-icon.upload-away:hover { background: rgba(90,150,210,0.15); }
+    .btn-icon.upload-neutral {
+      background: rgba(150,120,200,0.08);
+      color: #9678c8;
+      border: 1px solid rgba(150,120,200,0.15);
+    }
+    .btn-icon.upload-neutral:hover { background: rgba(150,120,200,0.15); }
+    .btn-icon.upload-warning {
+      background: rgba(255,171,0,0.08);
+      color: #ffab00;
+      border: 1px solid rgba(255,171,0,0.15);
+    }
+    .btn-icon.upload-warning:hover { background: rgba(255,171,0,0.15); }
+    .btn-icon.upload-general {
+      background: rgba(100,140,200,0.08);
+      color: #648cc8;
+      border: 1px solid rgba(100,140,200,0.15);
+    }
+    .btn-icon.upload-general:hover { background: rgba(100,140,200,0.15); }
+    .btn-icon.reset {
+      background: rgba(255,255,255,0.03);
+      color: #4a5a7a;
+      border: 1px solid #151d3d;
+    }
+    .btn-icon.reset:hover {
+      background: rgba(255,255,255,0.06);
+      color: #6a7a9a;
+    }
+    .sound-tip {
+      font-size: 9px;
+      color: #3a4a6a;
+      margin-top: 8px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    /* ===== Toggle Switch ===== */
+    .toggle-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      color: #7a8aaa;
+      cursor: pointer;
+      user-select: none;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid #151d3d;
+      transition: all 0.2s ease;
+      background: #0c1030;
+    }
+    .toggle-label:hover {
+      border-color: #1e2a5a;
+      background: #0e1240;
+    }
+    .toggle-label:has(input:checked) {
+      border-color: rgba(255,171,0,0.3);
+      background: rgba(255,171,0,0.06);
+    }
+    .toggle-label input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+      accent-color: #ffab00;
+    }
+
+    /* ===== Time Settings ===== */
+    .time-group {
+      background: #0c1030;
+      border-radius: 8px;
+      padding: 10px;
+      border: 1px solid #111840;
+    }
+    .time-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .time-row:last-child { margin-bottom: 0; }
+    .time-label {
+      width: 48px;
+      font-size: 10px;
+      color: #5a6a8a;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+    .time-input {
+      width: 50px;
+      padding: 5px 6px;
+      border: 1px solid #1a2860;
+      border-radius: 4px;
+      font-size: 11px;
+      text-align: center;
+      transition: all 0.2s ease;
+      background: #080c1a;
+      color: #b8c5d6;
+      font-family: 'SF Mono', 'Consolas', monospace;
+    }
+    .time-input:focus {
+      outline: none;
+      border-color: #00d4ff;
+      box-shadow: 0 0 0 2px rgba(0,212,255,0.06);
+      background: #0c1030;
+    }
+    .time-sep {
+      font-size: 12px;
+      color: #2a3a5a;
+      font-weight: 300;
+    }
+    .time-unit {
+      font-size: 10px;
+      color: #4a5a7a;
+    }
+    .time-tip {
+      font-size: 9px;
+      color: #3a4a6a;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <!-- ===== 登录页面 ===== -->
+  <div id="loginPage" style="display:none;">
+    <div class="header">
+      <div class="logo-row">
+        <div class="pulse-dot"></div>
+        <h1>MatchPulse</h1>
+      </div>
+      <div class="subtitle">Global Sports Data Engine</div>
+      <div class="version">V0.2.7</div>
+    </div>
+    <div class="login-card">
+      <div style="margin-bottom:14px;">
+        <input type="text" id="loginUsername" class="login-input" placeholder="请输入用户名">
+      </div>
+      <div style="margin-bottom:14px;">
+        <input type="password" id="loginPassword" class="login-input" placeholder="请输入密码">
+      </div>
+      <button id="btnLogin" class="login-btn">登 录</button>
+      <div id="loginError" class="login-error"></div>
+      <div class="login-qq">技术支持 QQ：3814026299</div>
+    </div>
+  </div>
+
+  <!-- ===== 主界面 ===== -->
+  <div id="mainPage" style="display:none;">
+    <div class="header">
+      <div class="logo-row">
+        <div class="pulse-dot"></div>
+        <h1>MatchPulse</h1>
+      </div>
+      <div class="subtitle">Global Sports Data Engine</div>
+      <div class="version">V0.2.7</div>
+      <button class="zoom-btn" id="btnZoom">100%</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="alerts">事件信号流</div>
+      <div class="tab" data-tab="bets">操作记录</div>
+      <div class="tab" data-tab="settings">信号配置</div>
+      <div class="tab" data-tab="account">账户中心</div>
+    </div>
+
+    <!-- ===== 事件信号流 Tab ===== -->
+    <div id="alertsTab" class="tab-content active">
+      <div class="status-bar">
+        <div class="status">
+          <div class="signal-bars" id="signalBars">
+            <div class="signal-bar"></div>
+            <div class="signal-bar"></div>
+            <div class="signal-bar"></div>
+            <div class="signal-bar"></div>
+          </div>
+          <span class="status-text" id="statusText">数据源离线</span>
+        </div>
+        <div>
+          <button class="btn home" id="btnTestHome">测试主队</button>
+          <button class="btn away" id="btnTestAway">测试客队</button>
+          <button class="btn danger" id="btnClear">清除</button>
+        </div>
+      </div>
+      <div class="match-teams" id="matchTeams" style="display:none;">
+        <div class="match-teams-inner">
+          <span class="team-tag home-tag" id="homeTeamName">主队</span>
+          <span class="vs-text">VS</span>
+          <span class="team-tag away-tag" id="awayTeamName">客队</span>
+        </div>
+      </div>
+      <div class="log-container" id="logContainer">
+        <div class="empty-state" id="emptyState">
+          <div class="icon">◈</div>
+          <p>等待数据信号...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 操作记录 Tab ===== -->
+    <div id="betsTab" class="tab-content">
+      <div class="status-bar">
+        <div class="status">
+          <span class="status-text" id="betStatusText">操作记录</span>
+        </div>
+        <div>
+          <button class="btn danger" id="btnClearBets">清除</button>
+        </div>
+      </div>
+      <div class="log-container" id="betLogContainer">
+        <div class="empty-state" id="betEmptyState">
+          <div class="icon">◈</div>
+          <p>暂无操作记录</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 信号配置 Tab ===== -->
+    <div id="settingsTab" class="tab-content">
+      <div class="settings-container" style="padding:8px;">
+
+        <!-- ===== 主队信号 ===== -->
+        <div class="sound-group">
+          <div class="sound-group-title">◆ 主队信号</div>
+
+          <div class="sound-item">
+            <div class="sound-item-header">
+              <div class="sound-item-label">
+                <span class="icon">◆</span> 主队角球信号
+              </div>
+              <span class="sound-tag default" id="homeCornerStatus">默认</span>
+            </div>
+            <div class="sound-item-actions">
+              <input type="file" id="homeCornerInput" accept="audio/*" style="display:none">
+              <button class="btn-icon play" id="btnTestHomeCorner">▶ 试听</button>
+              <button class="btn-icon upload-home" id="btnUploadHomeCorner">↑ 上传</button>
+              <button class="btn-icon reset" id="btnResetHomeCorner">✕ 重置</button>
+            </div>
+          </div>
+
+          <div class="sound-item">
+            <div class="sound-item-header">
+              <div class="sound-item-label">
+                <span class="icon">◆</span> 主队任意球信号
+              </div>
+              <span class="sound-tag default" id="homeFreekickStatus">默认</span>
+            </div>
+            <div class="sound-item-actions">
+              <input type="file" id="homeFreekickInput" accept="audio/*" style="display:none">
+              <button class="btn-icon play" id="btnTestHomeFreekick">▶ 试听</button>
+              <button class="btn-icon upload-home" id="btnUploadHomeFreekick">↑ 上传</button>
+              <button class="btn-icon reset" id="btnResetHomeFreekick">✕ 重置</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 客队信号 ===== -->
+        <div class="sound-group">
+          <div class="sound-group-title">◇ 客队信号</div>
+
+          <div class="sound-item">
+            <div class="sound-item-header">
+              <div class="sound-item-label">
+                <span class="icon">◇</span> 客队角球信号
+              </div>
+              <span class="sound-tag default" id="awayCornerStatus">默认</span>
+            </div>
+            <div class="sound-item-actions">
+              <input type="file" id="awayCornerInput" accept="audio/*" style="display:none">
+              <button class="btn-icon play" id="btnTestAwayCorner">▶ 试听</button>
+              <button class="btn-icon upload-away" id="btnUploadAwayCorner">↑ 上传</button>
+              <button class="btn-icon reset" id="btnResetAwayCorner">✕ 重置</button>
+            </div>
+          </div>
+
+          <div class="sound-item">
+            <div class="sound-item-header">
+              <div class="sound-item-label">
+                <span class="icon">◇</span> 客队任意球信号
+              </div>
+              <span class="sound-tag default" id="awayFreekickStatus">默认</span>
+            </div>
+            <div class="sound-item-actions">
+              <input type="file" id="awayFreekickInput" accept="audio/*" style="display:none">
+              <button class="btn-icon play" id="btnTestAwayFreekick">▶ 试听</button>
+              <button class="btn-icon upload-away" id="btnUploadAwayFreekick">↑ 上传</button>
+              <button class="btn-icon reset" id="btnResetAwayFreekick">✕ 重置</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 中立/通用信号 ===== -->
+        <div class="sound-group">
+          <div class="sound-group-title">◎ 中立 / 通用信号</div>
+
+          <div class="sound-item">
+            <div class="sound-item-header">
+              <div class="sound-item-label">
+                <span class="icon">◎</span> 中立角球信号
+              </div>
+              <span class="sound-tag default" id="neutralCornerStatus">默认</span>
+            </div>
+            <div class="sound-item-actions">
+              <input type="file" id="neutralCornerInput" accept="audio/*" style="display:none">
+              <button class="btn-icon play" id="btnTestNeutralCorner">▶ 试听</button>
+              <button class="btn-icon upload-neutral" id="btnUploadNeutralCorner">↑ 上传</button>
+              <button class="btn-icon reset" id="btnResetNeutralCorner">✕ 重置</button>
+            </div>
+            <div style="font-size:9px;color:#3a4a6a;margin-top:5px;">数据源无法识别队伍时使用</div>
+          </div>
+
+          <div class="sound-item">
+            <div class="sound-item-header">
+              <div class="sound-item-label">
+                <span class="icon">◆</span> 监测启动信号
+              </div>
+              <span class="sound-tag default" id="startAlertStatus">默认</span>
+            </div>
+            <div class="sound-item-actions">
+              <input type="file" id="startAlertInput" accept="audio/*" style="display:none">
+              <button class="btn-icon play" id="btnTestStartAlert">▶ 试听</button>
+              <button class="btn-icon upload-warning" id="btnUploadStartAlert">↑ 上传</button>
+              <button class="btn-icon reset" id="btnResetStartAlert">✕ 重置</button>
+            </div>
+            <div style="font-size:9px;color:#3a4a6a;margin-top:5px;">到达监测窗口起始时间时播放</div>
+          </div>
+
+          <div class="sound-item">
+            <div class="sound-item-header">
+              <div class="sound-item-label">
+                <span class="icon">◆</span> 对冲提醒信号
+              </div>
+              <span class="sound-tag default" id="supplementStatus">默认</span>
+            </div>
+            <div class="sound-item-actions">
+              <input type="file" id="supplementInput" accept="audio/*" style="display:none">
+              <button class="btn-icon play" id="btnTestSupplement">▶ 试听</button>
+              <button class="btn-icon upload-general" id="btnUploadSupplement">↑ 上传</button>
+              <button class="btn-icon reset" id="btnResetSupplement">✕ 重置</button>
+            </div>
+            <div style="font-size:9px;color:#3a4a6a;margin-top:5px;">对方进攻触发对冲提醒时播放</div>
+          </div>
+        </div>
+
+        <div class="sound-tip">支持 mp3、wav 等格式，建议文件小于 500KB</div>
+
+        <!-- ===== 对冲触发模式 ===== -->
+        <div class="sound-group" style="margin-top:10px;">
+          <div class="sound-group-title">◎ 对冲触发模式</div>
+          <div class="toggle-group">
+            <label class="toggle-label" style="border-color:rgba(0,230,118,0.3);">
+              <input type="radio" name="supplementMode" value="possession" checked>
+              <span style="color:#00e676;font-weight:bold;">持续控球</span> <span style="color:#4a5a7a;">● 稳健安全</span>
+            </label>
+            <label class="toggle-label" style="border-color:rgba(255,171,0,0.3);">
+              <input type="radio" name="supplementMode" value="attack">
+              <span style="color:#ffab00;font-weight:bold;">进攻信号</span> <span style="color:#4a5a7a;">● 中等风险</span>
+            </label>
+            <label class="toggle-label" style="border-color:rgba(255,82,82,0.3);">
+              <input type="radio" name="supplementMode" value="dangerous_attack">
+              <span style="color:#ff5252;font-weight:bold;">危险进攻</span> <span style="color:#4a5a7a;">● 激进模式</span>
+            </label>
+          </div>
+          <div id="possessionTimeRow" style="margin-top:8px;display:flex;align-items:center;gap:6px;">
+            <span style="color:#7a8aaa;font-size:11px;">控球持续</span>
+            <input type="number" id="possessionThresholdSec" class="time-input" min="1" max="30" value="3" style="width:50px;">
+            <span style="color:#7a8aaa;font-size:11px;">秒后提醒</span>
+          </div>
+          <div style="font-size:9px;color:#3a4a6a;margin-top:8px;line-height:1.6;">
+            三种模式互斥，选择一种触发条件：<br>
+            ● <span style="color:#00e676;">持续控球</span> 对方持续控球N秒才提醒，信号最稳，最容易补上<br>
+            ● <span style="color:#ffab00;">进攻信号</span> 对方进攻即提醒，覆盖面适中，但延迟多就容易补不上<br>
+            ● <span style="color:#ff5252;">危险进攻</span> 仅危险进攻才提醒，信号最少但最精准，但最危险容易补不上
+          </div>
+        </div>
+
+        <!-- ===== 监测窗口 ===== -->
+        <div class="time-group" style="margin-top:10px;">
+          <div class="sound-group-title" style="border-bottom-color:#111840;margin-bottom:8px;padding-bottom:8px;">◎ 监测窗口</div>
+          <div class="time-row">
+            <span class="time-label">上半场</span>
+            <input type="number" id="firstHalfStart" class="time-input" min="0" max="45" value="32">
+            <span class="time-sep">—</span>
+            <input type="number" id="firstHalfEnd" class="time-input" min="0" max="45" value="44">
+            <span class="time-unit">分钟</span>
+          </div>
+          <div class="time-row">
+            <span class="time-label">下半场</span>
+            <input type="number" id="secondHalfStart" class="time-input" min="45" max="90" value="78">
+            <span class="time-sep">—</span>
+            <input type="number" id="secondHalfEnd" class="time-input" min="45" max="90" value="88">
+            <span class="time-unit">分钟</span>
+          </div>
+          <div class="time-tip">角球和任意球信号仅在此时间窗口内触发提醒；到达起始时间时发出"监测启动"信号</div>
+        </div>
+
+        <!-- ===== 双源去重 ===== -->
+        <div class="time-group" style="margin-top:10px;">
+          <div class="sound-group-title" style="border-bottom-color:#111840;margin-bottom:8px;padding-bottom:8px;">◎ 双源去重窗口</div>
+          <div class="time-row">
+            <span class="time-label">去重时间</span>
+            <input type="number" id="dedupWindowSec" class="time-input" min="1" max="60" value="15">
+            <span class="time-unit">秒</span>
+          </div>
+          <div class="time-tip">动画信号源与文字信号源 N 秒内同一事件仅触发一次，默认 15 秒</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===== 账户中心 Tab ===== -->
+    <div id="accountTab" class="tab-content">
+      <div class="settings-container">
+        <div class="setting-item">
+          <div class="setting-label">◆ 账户信息</div>
+          <div class="account-info">
+            <div><span class="label">用户名：</span><span class="value" id="accountUsername">-</span></div>
+            <div><span class="label">到期时间：</span><span class="value" id="accountExpiry">-</span></div>
+            <div><span class="label">状态：</span><span class="value" id="accountStatus">-</span></div>
+            <div><span class="label">设备：</span><span class="value" id="accountDevices">-</span></div>
+            <div id="accountDeviceList" style="font-size:10px;color:#4a5a7a;margin-top:2px;"></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button class="btn btn-full btn-outline" id="btnManageDevices">◆ 设备管理</button>
+            <button class="btn btn-full danger" id="btnLogout">◆ 退出登录</button>
+          </div>
+        </div>
+
+        <div class="setting-item" id="deviceManagerPanel" style="display:none;">
+          <div class="setting-label">◆ 设备列表 <span style="font-size:9px;color:#4a5a7a;font-weight:400;">(点击设备名可踢出)</span></div>
+          <div id="deviceListContainer" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:4px 0;"></div>
+          <button class="btn btn-full btn-outline" id="btnCloseDeviceManager" style="margin-top:8px;">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Powered by Global Sports Data Network<br>
+      <span style="color:#3a4a6a;">技术支持 QQ：3814026299</span>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
