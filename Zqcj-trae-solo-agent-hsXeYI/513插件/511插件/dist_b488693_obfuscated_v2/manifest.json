@@ -1,0 +1,61 @@
+{
+  "manifest_version": 3,
+  "name": "MatchPulse - 赛事数据引擎",
+  "version": "0.2.7",
+  "description": "全球赛事实时数据监测与分析平台，智能识别比赛关键事件信号",
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "offscreen",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://m.leisu.com/*",
+    "https://live.leisu.com/*",
+    "https://widget.namitiyu.com/*",
+    "http://103.146.231.236:8080/*",
+    "http://115.159.111.4:8080/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://m.leisu.com/live/detail-*",
+        "https://live.leisu.com/detail-*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://widget.namitiyu.com/*"
+      ],
+      "js": ["content-iframe.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "MatchPulse - 赛事数据引擎"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["sounds/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
