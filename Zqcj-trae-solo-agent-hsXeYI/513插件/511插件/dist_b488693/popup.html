@@ -8,20 +8,13 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     /* ===== 全局暗黑主题 ===== */
-    html, body {
+    body {
       width: 320px;
-      max-width: 100%;
       font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
       background: #080c1a;
       font-size: 12px;
       color: #b8c5d6;
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-      overflow-y: auto;
-    }
-    body {
-      min-height: 100vh;
+      overflow: hidden;
     }
 
     /* ===== 全局滚动条 ===== */
@@ -802,16 +795,6 @@
     .btn-icon.reset:hover {
       background: rgba(255,255,255,0.06);
       color: #6a7a9a;
-    }
-    
-    /* 优化文件输入在移动端兼容性 */
-    input[type="file"] {
-      position: absolute;
-      left: -9999px;
-      visibility: hidden;
-      display: block;
-      width: 0;
-      height: 0;
     }
     .sound-tip {
       font-size: 9px;

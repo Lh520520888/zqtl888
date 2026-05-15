@@ -511,33 +511,16 @@ function setupMainPage() {
   // 绑定上传和重置事件
   soundTypes.forEach(type => {
     const el = soundElements[type];
-    
-    // 添加 click 和 touchstart 双重支持，确保手机端正常工作
-    const triggerUpload = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      el.input.click();
-    };
-    
-    el.btnUpload.addEventListener('click', triggerUpload);
-    el.btnUpload.addEventListener('touchstart', triggerUpload);
-    
+    el.btnUpload.addEventListener('click', () => el.input.click());
     el.input.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) {
-        handleAudioUpload(e.target.files[0], type);
-      }
+      handleAudioUpload(e.target.files[0], type);
       el.input.value = '';
     });
-    
-    const resetSound = (e) => {
-      e.preventDefault();
+    el.btnReset.addEventListener('click', () => {
       chrome.storage.local.remove('custom_' + type, () => {
         loadSoundSettings();
       });
-    };
-    
-    el.btnReset.addEventListener('click', resetSound);
-    el.btnReset.addEventListener('touchstart', resetSound);
+    });
   });
 
   // 加载时间设置
@@ -574,54 +557,28 @@ function setupMainPage() {
   dedupWindowSec.addEventListener('change', saveDedupWindow);
 
   // 开始警示声音上传和重置
-  const triggerStartAlertUpload = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    startAlertInput.click();
-  };
-  btnUploadStartAlert.addEventListener('click', triggerStartAlertUpload);
-  btnUploadStartAlert.addEventListener('touchstart', triggerStartAlertUpload);
-  
+  btnUploadStartAlert.addEventListener('click', () => startAlertInput.click());
   startAlertInput.addEventListener('change', (e) => {
-    if (e.target.files && e.target.files[0]) {
-      handleAudioUpload(e.target.files[0], 'startAlert');
-    }
+    handleAudioUpload(e.target.files[0], 'startAlert');
     startAlertInput.value = '';
   });
-  
-  const resetStartAlert = (e) => {
-    e.preventDefault();
+  btnResetStartAlert.addEventListener('click', () => {
     chrome.storage.local.remove('custom_startAlert', () => {
       loadSoundSettings();
     });
-  };
-  btnResetStartAlert.addEventListener('click', resetStartAlert);
-  btnResetStartAlert.addEventListener('touchstart', resetStartAlert);
+  });
 
   // 补单提醒声音上传和重置
-  const triggerSupplementUpload = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    supplementInput.click();
-  };
-  btnUploadSupplement.addEventListener('click', triggerSupplementUpload);
-  btnUploadSupplement.addEventListener('touchstart', triggerSupplementUpload);
-  
+  btnUploadSupplement.addEventListener('click', () => supplementInput.click());
   supplementInput.addEventListener('change', (e) => {
-    if (e.target.files && e.target.files[0]) {
-      handleAudioUpload(e.target.files[0], 'supplement');
-    }
+    handleAudioUpload(e.target.files[0], 'supplement');
     supplementInput.value = '';
   });
-  
-  const resetSupplement = (e) => {
-    e.preventDefault();
+  btnResetSupplement.addEventListener('click', () => {
     chrome.storage.local.remove('custom_supplement', () => {
       loadSoundSettings();
     });
-  };
-  btnResetSupplement.addEventListener('click', resetSupplement);
-  btnResetSupplement.addEventListener('touchstart', resetSupplement);
+  });
 
   // ===== 试听功能 =====
   function playTestSound(team, eventType) {
